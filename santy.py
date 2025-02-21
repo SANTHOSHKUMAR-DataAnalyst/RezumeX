@@ -709,34 +709,56 @@ def suggest_salary_expectations(job_role):
     return salaries.get(job_role, "Salary data not available for this role.")
 
 
+
 # Streamlit app
 st.set_page_config(page_title="RezumeX", page_icon=":page_facing_up:", layout="wide")
 
 st.markdown(
     """
     <style>
-    /* ... (Your CSS styles - including larger buttons, welcome content, job role selector) ... */
-    .stButton button {
-        background: linear-gradient(to right, #8A2BE2, #E6C9FC);
+    .stButton {
+        display: flex;
+        justify-content: center; /* Centers the button horizontally */
+    }
+    .stButton > button {
+        width: 100%; /* Make buttons fill the container width */
+        max-width: 600px; /* Set a maximum width (adjust as needed) */
+        height: auto !important; /* Make button height adjust to text */
+        min-height: 60px; /* Set a minimum height */
+        font-size: 1.2rem; /* Increase font size */
+        padding: 15px 30px; /* Add padding */
+        margin-bottom: 10px; /* Add some spacing between buttons */
+        background: linear-gradient(to right, #8A2BE2, #E6C9FC); /* Example gradient */
         color: white;
         border: none;
         border-radius: 8px;
         cursor: pointer;
-        height: auto !important; /* Make button taller */
-        min-height: 60px; /* Set a minimum height */
-        font-size: 1.2rem; /* Increase font size */
-        padding: 15px 30px; /* Add padding */
+        text-align: center; /* Center text within the button */
+        word-wrap: break-word; /* Allow text to wrap within the button */
     }
-    /* ... (Rest of your CSS styles) ... */
+
+    body {
+        background-image: url("https://www.google.com/url?sa=i&url=https%3A%2F%2Fpngtree.com%2Ffreebackground%2Fblue-and-purple-modern-background-design-free-png_1451507.html&psig=AOvVaw3FYlsL3xFuLzKbD5XhnUNS&ust=1740228863976000&source=images&cd=vfe&opi=89978449&ved=0CBEQjRxqFwoTCNCOnOzn1IsDFQAAAAAdAAAAABAJ"); /* Replace with your image URL */
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+
+    .main .block-container {
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
 #===========================================================================================================================================
 
 # Initialize session state for user type
 if "user_type" not in st.session_state:
     st.session_state.user_type = "welcome"
+    
 
 def set_user_type(user_type):
     st.session_state.user_type = user_type
