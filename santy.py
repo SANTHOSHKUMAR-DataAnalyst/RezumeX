@@ -66,6 +66,35 @@ Provide a detailed analysis of the resume, focusing ONLY on the following points
 7. **Academic Details:** Summarize the candidate's education and qualifications, including degrees, majors, universities, and graduation dates (if available). If academic details are not included, mention that clearly.
 """
 #===========================================================================================================================================
+def generate_cover_letter(resume_data, job_data, preferences=None):
+    """
+    Generate a cover letter using Gemini API.
+    """
+    prompt = f"""
+    Write a compelling cover letter for a candidate with the following resume information:
+
+    Applicant Name: {resume_data['name']}
+    Contact Information: {resume_data.get('contact', {})}
+    Skills: {resume_data['skills']}
+    Experience: {resume_data.get('experience', [])} 
+    Education: {resume_data.get('education', [])}   
+    Summary/Objective: {resume_data.get('summary', '')} 
+
+    They are applying for the following job:
+
+    Job : {job_data['job_title']}
+    Company Name: {job_data['company_name']}
+    Job Description: {job_data['job_description']}
+    Key Requirements/Keywords: {job_data.get('key_requirements', [])}
+
+    Preferences: {preferences or {}}
+
+    Consider the applicant's skills and experience and tailor the cover letter to the specific job description. The cover letter should be professional and persuasive.
+    and give only a applicant name not give 'Your name'"""
+
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    response = model.generate_content(prompt)
+    return response.text
 
 # Helper functions
 def extract_ats_score(response):
@@ -81,7 +110,33 @@ def extract_ats_score(response):
         return 0.0
 
 #===========================================================================================================================================
+def convert_pdf_to_text(pdf_content):
+    """
+    Convert PDF content to text. If the PDF is scanned, use OCR.
+    """
+    try:
+        pdf_reader = PdfReader(io.BytesIO(pdf_content))
+        text = ""
+        for page in pdf_reader.pages:
+            try:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+            except Exception as e:
+                st.warning(f"Error extracting text from a page: {e}")
+                continue
 
+        if not text.strip():  # If no text extracted, try OCR
+            st.warning("The PDF appears to be scanned or image-based. Extracting text using OCR...")
+            images = convert_from_bytes(pdf_content)
+            for image in images:
+                text += pytesseract.image_to_string(image) + "\n"
+
+        return text.strip() if text else None
+
+    except Exception as e:
+        st.error(f"Error reading or processing PDF: {e}. Please check if the file is valid and not encrypted.")
+        return None
 
 def extract_keywords_missing(response):
     try:
@@ -93,10 +148,7 @@ def extract_keywords_missing(response):
         return "No Keywords Missing"
     except:
         return "Error in keywords missing"
-
 #===========================================================================================================================================
-
-
 def extract_final_thoughts(response):
     try:
         lines = response.splitlines()
@@ -107,7 +159,6 @@ def extract_final_thoughts(response):
         return "No Final Thoughts"
     except:
         return "Error in final thoughts"
-    
 # ===================================================================================================================================================    
 
 def get_gemini_response(prompt, image_bytes, input_text):
@@ -712,7 +763,6 @@ def suggest_salary_expectations(job_role):
 
 # Streamlit app
 st.set_page_config(page_title="RezumeX", page_icon=":page_facing_up:", layout="wide")
-
 st.markdown(
     """
     <style>
@@ -725,11 +775,12 @@ st.markdown(
         max-width: 600px; /* Set a maximum width (adjust as needed) */
         height: auto !important; /* Make button height adjust to text */
         min-height: 60px; /* Set a minimum height */
-        font-size: 1.2rem; /* Increase font size */
+        font-size: 4 rem; /* Increase font size (slightly bigger) */
+        font-weight: bold; /* Make text bold */
+        color: #FFFFFF; /* White text color */
         padding: 15px 30px; /* Add padding */
         margin-bottom: 10px; /* Add some spacing between buttons */
         background: linear-gradient(to right, #8A2BE2, #E6C9FC); /* Example gradient */
-        color: white;
         border: none;
         border-radius: 8px;
         cursor: pointer;
@@ -752,14 +803,11 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 #===========================================================================================================================================
 
 # Initialize session state for user type
 if "user_type" not in st.session_state:
     st.session_state.user_type = "welcome"
-    
-
 def set_user_type(user_type):
     st.session_state.user_type = user_type
 
@@ -939,8 +987,10 @@ if st.session_state.user_type == "welcome":
         set_user_type("general_user")
     if st.button("HR", use_container_width=False):
         set_user_type("hr")
-    if st.button("Linkedin Analyser 🔎", use_container_width=False):
+    if st.button("Linkedin Analyser ", use_container_width=False):
         set_user_type("linkedin")
+    if st.button("Cover Letter Generator", use_container_width=False):
+        set_user_type("cover_letter_generator")
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Welcome Content
@@ -951,10 +1001,7 @@ if st.session_state.user_type == "welcome":
     st.write("🚀 For **job seekers exploring different options**, RezumeX provides valuable insights into your strengths and areas for improvement. Discover your potential and identify the roles that best match your skills and aspirations.")
     st.write("🚀 For **HR professionals**, RezumeX simplifies the tedious task of resume screening. Quickly identify top candidates, assess their qualifications, and make data-driven hiring decisions.")
     st.markdown("</div>", unsafe_allow_html=True)
-
-
 #=======================================================================================================================================================================================================================================================
-
 elif st.session_state.user_type == "hr":
     st.title("HR Dashboard")
 
@@ -1012,11 +1059,7 @@ elif st.session_state.user_type == "hr":
     elif not uploaded_files and not input_text:
         st.warning("Please upload resumes and enter a job description.")
 #========================================================================================================================================================================================
-
-
-
 # ------------------------------------------------------------------------------------------------------------------------------------------------ 
-
 elif st.session_state.user_type == "user_with_job_role":
     st.title("RezumeX - User (with Job Role)")
     st.subheader("Application Tracking System")
@@ -1081,10 +1124,7 @@ elif st.session_state.user_type == "user_with_job_role":
 
     elif not uploaded_file and not input_text:
         st.warning("Please upload a resume and enter a job description.")
-
 #===========================================================================================================================================
-
-
 elif st.session_state.user_type == "linkedin" :
     st.title("LinkedIn Profile Analyzer")
 
@@ -1130,7 +1170,6 @@ elif st.session_state.user_type == "linkedin" :
                 # ... (Your existing rule-based suggestions)
                 pass  # You can keep the old suggestions here if you want them as a fallback. 
 
-
 elif st.session_state.user_type == "general_user":  # General User Section (No longer a function)
     st.title("RezumeX - User Without Job Role")
     st.subheader("Rezume Analysis and Career Guidance")
@@ -1172,3 +1211,48 @@ elif st.session_state.user_type == "general_user":  # General User Section (No l
 
         except Exception as e:
             st.error(f"An error occurred: {e}")
+# Cover Letter Generator Page
+elif st.session_state.user_type == "cover_letter_generator":
+    st.title("Cover Letter Generator")
+
+    # Initialize resume and job data
+    resume_data = {}  
+    job_data = {  
+        "job_title": "",
+        "company_name": "",
+        "job_description": "",
+        "key_requirements": ""
+    }
+
+    # Form for user input
+    with st.form("cover_letter_form"):
+        resume_data['name'] = st.text_input("Your Name", placeholder="Enter Your Name")
+        resume_data['contact'] = {
+            'email': st.text_input("Your Email", placeholder="Enter Your Email"), 
+            'phone': st.text_input("Your Phone", placeholder="Enter Your Phone"), 
+            'linkedin': st.text_input("Your LinkedIn Profile (Optional)", placeholder="Enter Your LinkedIn Profile")
+        }
+        resume_data['skills'] = st.text_area("Your Skills (comma-separated)", placeholder="Enter your skills, separated by commas")
+        job_data["job_title"] = st.text_input("Job Title", placeholder="Enter Job Title")
+        job_data["company_name"] = st.text_input("Company Name", placeholder="Enter Company Name")
+        job_data["job_description"] = st.text_area("Job Description", placeholder="Enter Job Description", height=200)
+        job_data["key_requirements"] = st.text_area("Key Requirements", placeholder="Enter Key Requirements", height=100)
+        submitted = st.form_submit_button("Generate Cover Letter")
+
+    # Generate cover letter on form submission
+    if submitted:
+        # Convert skills text to a list
+        resume_data['skills'] = [skill.strip() for skill in resume_data['skills'].split(',')]
+
+        # Generate cover letter using Gemini API
+        cover_letter = generate_cover_letter(resume_data, job_data)
+        st.subheader("Generated Cover Letter")
+        st.write(cover_letter)
+
+        # Option to download the cover letter
+        st.download_button(
+            label="Download Cover Letter",
+            data=cover_letter,
+            file_name="cover_letter.txt",
+            mime="text/plain"
+        )            
