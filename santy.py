@@ -1214,7 +1214,8 @@ elif st.session_state.user_type == "general_user":  # General User Section (No l
 # Cover Letter Generator Page
 elif st.session_state.user_type == "cover_letter_generator":
     st.title("Cover Letter Generator")
-
+    if st.button("Back to Home"):
+        set_user_type("welcome") 
     # Initialize resume and job data
     resume_data = {}  
     job_data = {  
